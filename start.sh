@@ -7,7 +7,7 @@ then
 	exit
 elif [[ $# -eq 0 ]]
 then
-	script=forstart.py
+	script=game.py
 else
 	script=$1
 fi
