@@ -36,10 +36,21 @@ class Editor:
 
         self.tilemap = Tilemap(self)
         
+        try:
+            self.tilemap.load('map.json')
+        except FileNotFoundError:
+            pass
+
         self.clicking = False
         self.right_clicking = False
         self.shift = False
         self.ongrid = True
+
+        self.special_keys = {
+            'ctrl': False,
+            's': False,
+            't': False
+        }
 
     def change_tile(self, next, group):
         sign = 2 * next - 1
@@ -48,7 +59,6 @@ class Editor:
             self.tile_variant = 0
         else:
             self.tile_variant = (self.tile_variant + sign) % len(self.assets[self.tile_list[self.tile_group]])
-
 
     def run(self):
         while True:
@@ -69,6 +79,7 @@ class Editor:
                 int((mpos[0] + self.scroll[0]) // tsize),
                 int((mpos[1] + self.scroll[1]) // tsize)
             )
+            pos = (mpos[0] + self.scroll[0], mpos[1] + self.scroll[1])
 
             current_tile_img.set_alpha(100)
             if self.ongrid:
@@ -80,11 +91,9 @@ class Editor:
                         'variant': self.tile_variant,
                         'pos': tile_pos
                     }
-                if self.right_clicking and f"{tile_pos[0]};{tile_pos[1]}" in self.tilemap.tilemap:
-                    del self.tilemap.tilemap[f"{tile_pos[0]};{tile_pos[1]}"]
+                
             else:
                 self.display.blit(current_tile_img, (mpos[0] , mpos[1]))
-                pos = (mpos[0] + self.scroll[0], mpos[1] + self.scroll[1])
                 current_tile_img.set_alpha(255)
                 if self.clicking:
                     size = self.assets[self.tile_list[self.tile_group]][self.tile_variant].get_size()
@@ -92,13 +101,23 @@ class Editor:
                         'type': self.tile_list[self.tile_group],
                         'variant': self.tile_variant,
                         'pos': pos,
-                        'rect': pygame.Rect(pos[0], pos[1], *size)
+                        'rect': (pos[0], pos[1], *size)
                     })
-                if self.right_clicking:
-                    for i, tile in enumerate(self.tilemap.offgrid_tiles):
-                        if tile['rect'].collidepoint(pos):
-                            self.tilemap.offgrid_tiles.pop(i)
             
+            if self.right_clicking:
+                if f"{tile_pos[0]};{tile_pos[1]}" in self.tilemap.tilemap:
+                    del self.tilemap.tilemap[f"{tile_pos[0]};{tile_pos[1]}"]
+                
+                for i, tile in enumerate(self.tilemap.offgrid_tiles):
+                    if pygame.Rect(*tile['rect']).collidepoint(pos):
+                        self.tilemap.offgrid_tiles.pop(i)
+
+            if self.special_keys['ctrl'] and self.special_keys['s']:
+                self.tilemap.save('map.json')
+            
+            if self.special_keys['t']:
+                self.tilemap.autotile()
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -127,6 +146,12 @@ class Editor:
                         self.movement[3] = True
                     if event.key == pygame.K_g:
                         self.ongrid = not self.ongrid
+                    if event.key == pygame.K_LCTRL:
+                        self.special_keys['ctrl'] = True
+                    if event.key == pygame.K_s:
+                        self.special_keys['s'] = True
+                    if event.key == pygame.K_t:
+                        self.special_keys['t'] = True
                     
                     if event.key == pygame.K_LSHIFT:
                         self.shift = True
@@ -145,6 +170,12 @@ class Editor:
                         self.movement[3] = False
                     if event.key == pygame.K_LSHIFT:
                         self.shift = False
+                    if event.key == pygame.K_LCTRL:
+                        self.special_keys['ctrl'] = False
+                    if event.key == pygame.K_s:
+                        self.special_keys['s'] = False
+                    if event.key == pygame.K_t:
+                        self.special_keys['t'] = False
 
             self.screen.blit(pygame.transform.scale(self.display, (600, 480)), (0, 0))
             pygame.display.update()

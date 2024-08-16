@@ -1,14 +1,65 @@
 import pygame
+import json
+
+
+AUTOTILE_MAP = {
+    tuple(sorted([(1, 0), (0, 1)])) : 0,
+    tuple(sorted([(-1, 0), (1, 0)])) : 1,
+    tuple(sorted([(-1, 0), (1, 0), (0, 1)])) : 1,
+    tuple(sorted([(-1, 0), (0, 1)])) : 2,
+    tuple(sorted([(-1, 0), (0, -1), (0, 1)])) : 3,
+    tuple(sorted([(-1, 0), (0, -1)])) : 4,
+    tuple(sorted([(-1, 0), (0, -1), (1, 0)])) : 5,
+    tuple(sorted([(1, 0), (0, -1)])) : 6,
+    tuple(sorted([(1, 0), (0, 1), (0, -1)])) : 7,
+    tuple(sorted([(1, 0), (0, -1), (-1, 0), (0, 1)])) : 8
+}
 
 NEIGHBOR_OFFSET = [(i, j) for i in range(-1, 2) for j in range(-1, 2)]
 PHYSICS_TILES = {'grass', 'stone'}
-
+AUTO_TILES = {'grass', 'stone'}
 class Tilemap:
     def __init__(self, game, tile_size=16):
         self.game = game
         self.tile_size = tile_size
         self.tilemap = {}
         self.offgrid_tiles = []
+
+    
+    def autotile(self):
+        for _, tile in self.tilemap.items():
+            neighbors = set()
+            for shift in [(-1, 0), (0, -1), (1, 0), (0, 1)]:
+                neighbor_pos = (
+                    tile['pos'][0] + shift[0],
+                    tile['pos'][1] + shift[1]
+                )
+                neighbor_loc = f"{neighbor_pos[0]};{neighbor_pos[1]}"
+                if neighbor_loc in self.tilemap:
+                    if self.tilemap[neighbor_loc]['type'] == tile['type']:
+                        neighbors.add(shift)
+                key = tuple(sorted(neighbors))
+                if key in AUTOTILE_MAP:
+                    tile['variant'] = AUTOTILE_MAP[key]
+
+
+
+
+    def save(self, path):
+        with open(path, 'w') as f:
+            json.dump({
+                'tilemap': self.tilemap,
+                'tile_size': self.tile_size,
+                'offgrid': self.offgrid_tiles
+            }, f)
+
+
+    def load(self, path):
+        with open(path, 'r') as f:
+            data = json.load(f)
+            self.tilemap = data['tilemap']
+            self.tile_size = data['tile_size']
+            self.offgrid_tiles = data['offgrid']
 
     def render(self, surf, offset=(0, 0)):
         for x in range(
