@@ -8,20 +8,7 @@ class Tilemap:
         self.game = game
         self.tile_size = tile_size
         self.tilemap = {}
-        self.offgrid_tiles = {}
-
-        for i in range(10):
-            self.tilemap[str(3 + i) + ";10"] = {
-                'type': 'grass',
-                'variant': 1,
-                'pos': (3 + i, 10)
-            }
-            self.tilemap["10;" + str(5 + i)] = {
-                'type': 'stone',
-                'variant': 1,
-                'pos': (10, 5 + i)
-            }
-        print(self.tilemap.keys())
+        self.offgrid_tiles = []
 
     def render(self, surf, offset=(0, 0)):
         for x in range(
@@ -36,6 +23,8 @@ class Tilemap:
                 if key in self.tilemap:
                     tile = self.tilemap[key]
                     surf.blit(self.game.assets[tile['type']][tile['variant']], (x * self.tile_size - offset[0], y * self.tile_size - offset[1]))
+        for tile in self.offgrid_tiles:
+            surf.blit(self.game.assets[tile['type']][tile['variant']], (tile['pos'][0] - offset[0], tile['pos'][1] - offset[1]))
 
     def tiles_around(self, pos):
         tiles = []
